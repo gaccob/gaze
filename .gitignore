@@ -3,16 +3,7 @@
 *.ko
 *.obj
 *.elf
-
-# Libraries
-*.lib
-*.a
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+gaze
 
 # Executables
 *.exe
@@ -21,3 +12,6 @@
 *.i*86
 *.x86_64
 *.hex
+
+# for mac os
+*.dSYM
