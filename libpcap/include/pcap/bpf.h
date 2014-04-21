@@ -84,6 +84,11 @@ extern "C" {
 typedef long          bpf_int32;
 typedef unsigned long bpf_u_int32;
 #else
+
+typedef unsigned int u_int;
+typedef unsigned short u_short;
+typedef unsigned char u_char;
+
 typedef	int bpf_int32;
 typedef	u_int bpf_u_int32;
 #endif

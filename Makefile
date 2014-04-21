@@ -30,11 +30,11 @@ mingw : LIBS += winpcap/lib/Packet.lib winpcap/lib/wpcap.lib
 mingw : $(SRC) $(TARGET)
 
 linux : CFLAGS += -Ilibpcap/include -DLINUX
-linux : LIBS += libpcap/lib/libpcap.a
+linux : LIBS += libpcap/lib/libpcap.linux.a
 linux : $(SRC) $(TARGET)
 
 macos : CFLAGS += -Ilibpcap/include -DMACOS
-macos : LIBS += libpcap/lib/libpcap.a
+macos : LIBS += libpcap/lib/libpcap.macos.a
 macos : $(SRC) $(TARGET)
 
 $(TARGET) :
