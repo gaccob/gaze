@@ -10,5 +10,6 @@
 #define GAZE_IP_NOT_SUPPORT -201
 #define GAZE_IP_NOT_V4 -202
 #define GAZE_IP_WITH_OPTION -203
+#define GAZE_IP_CHECKSUM_ERROR -204
 
 #endif

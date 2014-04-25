@@ -9,7 +9,8 @@ SRC := \
     src/main.c \
     src/eth.c \
     src/ip.c \
-    src/tcp.c
+    src/tcp.c \
+	src/checksum.c
 
 UNAME=$(shell uname)
 SYS=$(if $(filter Linux%, $(UNAME)), linux,\

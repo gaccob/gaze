@@ -62,7 +62,7 @@ parse_args(int argc, char** argv) {
                 snprintf(device, sizeof(device), "%s", optarg);
                 g_device = device;
                 break;
-                
+
             case 'i':
                 snprintf(filter + strlen(filter), sizeof(filter) - strlen(filter),
                     first == 0 ? "host %s" : " and host %s", optarg);
@@ -108,8 +108,7 @@ main(int argc, char** argv) {
         for (dev = devs; dev; dev = dev->next) {
             printf("\t%s\n", dev->name);
         }
-        pcap_freealldevs(devs);
-        return -1;
+        goto FAIL;
     }
 
     for (dev = devs; dev; dev = dev->next) {
@@ -119,15 +118,32 @@ main(int argc, char** argv) {
     }
     if (!dev) {
         printf("dev[%s] not found error\n", g_device);
-        return -1;
+        goto FAIL;
     }
 
     pcap_t* adhandle = pcap_open_live(dev->name, 65536, 0, 1000, err);
     if (!adhandle) {
         printf("unable to gaze %s: %s\n", dev->name, err);
-        pcap_freealldevs(devs);
-        return -1;
+        goto FAIL;
     }
+
+    if (g_filter) {
+
+        struct bpf_program fcode;
+        if (pcap_compile(adhandle, &fcode, g_filter, 1, 0) < 0) {
+            printf("unable to compile filter: %s\n", g_filter);
+            goto FAIL;
+        }
+
+        if (pcap_setfilter(adhandle, &fcode) < 0) {
+            printf("unable to set filter: %s\n", g_filter);
+            goto FAIL;
+        }
+    }
+
+    printf("listening on %s", dev->description ? dev->description : dev->name);
+    if (g_filter) printf("(%s)", g_filter);
+    printf(" ...\n");
 
     struct pcap_pkthdr* header;
     const unsigned char* data;
@@ -143,5 +159,9 @@ main(int argc, char** argv) {
     printf("reading packet: %s\n", pcap_geterr(adhandle));
     pcap_freealldevs(devs);
     return 0;
+
+FAIL:
+    pcap_freealldevs(devs);
+    return -1;
 }
 

@@ -9,12 +9,15 @@ typedef struct ip_addr_t {
 
 typedef struct ip_head_t {
     uint8_t vhl;
-    #define IP_V(ip) (((ip)->vhl & 0xf0) >> 4)
-    #define IP_HL(ip) ((ip)->vhl & 0x0f)
+#define IP_V(ip) (((ip)->vhl & 0xf0) >> 4)
+#define IP_HL(ip) ((ip)->vhl & 0x0f)
     uint8_t tos;
     uint16_t totlen;
     uint16_t ident;
     uint16_t offset;
+#define IP_DF 0x4000
+#define IP_MF 0x2000
+#define IP_OFFMASK 0x1FFF
     uint8_t ttl;
     uint8_t proto;
     uint16_t checksum;
