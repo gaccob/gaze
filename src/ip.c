@@ -25,6 +25,11 @@ ip_parse(const ip_head_t* ip) {
         return GAZE_IP_WITH_OPTION;
     }
 
+    // ignore MF (more fragment)
+    if (ip->offset & IP_MF) {
+        return GAZE_IP_MF_NOT_SUPPORT;
+    }
+
     // checksum
     struct cksum_vec vec;
     vec.ptr = (const uint8_t*)(ip);
@@ -40,8 +45,10 @@ ip_parse(const ip_head_t* ip) {
     uint32_t sip = *(uint32_t*)&ip->src;
     uint32_t dip = *(uint32_t*)&ip->dst;
     switch (ip->proto) {
-        case IP_TCP:
-            return tcp_parse((tcp_head_t*)(ip + 1), sip, dip);
+        case IP_TCP: {
+            uint16_t tcplen = ntohs(ip->totlen) - sizeof(ip_head_t);
+            return tcp_parse((tcp_head_t*)(ip + 1), sip, dip, tcplen);
+        }
         case IP_UDP:
         case IP_ICMP:
         case IP_IGMP:
@@ -51,5 +58,4 @@ ip_parse(const ip_head_t* ip) {
     }
     return GAZE_IP_FAIL;
 }
-
 

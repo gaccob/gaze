@@ -15,6 +15,6 @@ typedef struct tcp_head_t {
     uint16_t ptr;
 } tcp_head_t;
 
-int tcp_parse(const tcp_head_t* head, uint32_t sip, uint32_t dip);
+int tcp_parse(const tcp_head_t* head, uint32_t sip, uint32_t dip, uint16_t len);
 
 #endif
