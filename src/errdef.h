@@ -15,5 +15,6 @@
 
 #define GAZE_TCP_FAIL -300
 #define GAZE_TCP_CHECKSUM_ERROR -301
+#define GAZE_TCP_OPTION_FAIL -302
 
 #endif

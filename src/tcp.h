@@ -13,6 +13,10 @@ typedef struct tcp_head_t {
     uint16_t window;
     uint16_t checksum;
     uint16_t ptr;
+
+#define TCP_OPTION_NOP 0x01
+#define TCP_OPTION_MSS 0x02
+
 } tcp_head_t;
 
 int tcp_parse(const tcp_head_t* head, uint32_t sip, uint32_t dip, uint16_t len);
