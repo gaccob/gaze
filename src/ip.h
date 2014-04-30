@@ -33,6 +33,8 @@ typedef struct ip_head_t {
 #define IP_IGRP 88
 #define IP_OSPF 89
 
+#define IP_MAX_LEN 65536
+
 int ip_parse(const ip_head_t* head);
 
 #endif

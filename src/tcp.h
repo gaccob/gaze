@@ -14,8 +14,12 @@ typedef struct tcp_head_t {
     uint16_t checksum;
     uint16_t ptr;
 
+#define TCP_OPTION_EOF 0x0
 #define TCP_OPTION_NOP 0x01
 #define TCP_OPTION_MSS 0x02
+#define TCP_OPTION_WND_SCALE 0x03
+#define TCP_OPTION_SACK 0x04
+#define TCP_OPTION_TS  0x08
 
 } tcp_head_t;
 

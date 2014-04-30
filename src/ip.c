@@ -30,7 +30,7 @@ ip_parse(const ip_head_t* ip) {
         return GAZE_IP_MF_NOT_SUPPORT;
     }
 
-    // checksum
+    // checksum (must be aligned)
     struct cksum_vec vec;
     vec.ptr = (const uint8_t*)(ip);
     vec.len = sizeof(ip_head_t);

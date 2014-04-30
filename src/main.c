@@ -152,7 +152,7 @@ main(int argc, char** argv) {
         if (0 == res) continue; // timeout
         errno = eth_parse(data);
         if (errno != GAZE_OK) {
-            printf("parse packet fail: %d\n", errno);
+            printf("parse packet fail: %d\n\n", errno);
         }
     }
 
