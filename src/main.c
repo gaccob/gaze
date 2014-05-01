@@ -9,13 +9,14 @@
 #include <errno.h>
 #include <getopt.h>
 #include <pcap.h>
+#include <assert.h>
 
 #include "eth.h"
 #include "errdef.h"
 
 void
-usage() {
-    printf("usage:\n"
+_usage() {
+    printf("_usage:\n"
         "--tcp          \"tcp packets\"\n"
         "--udp          \"udp packets\"\n"
         "--eth <name>   \"sniff device name, required!\"\n"
@@ -23,11 +24,28 @@ usage() {
         "--port <port>\n");
 }
 
-static const char* g_device = NULL;
+static const char* g_name = NULL;
 static const char* g_filter = NULL;
+static pcap_if_t* g_device = NULL;
+
+typedef struct ip_addrs_t {
+    int num;
+    #define MAX_LOCAL_IP_ADDR_NUM 8
+    uint32_t addrs[MAX_LOCAL_IP_ADDR_NUM];
+} ip_addrs_t;
+
+static ip_addrs_t g_addrs;
 
 int
-parse_args(int argc, char** argv) {
+is_local_address(uint32_t addr) {
+    for (int i = 0; i < g_addrs.num; ++ i) {
+        if (g_addrs.addrs[i] == addr) return 0;
+    }
+    return -1;
+}
+
+int
+_parse(int argc, char** argv) {
 
     struct option opts[] = {
         { "tcp",    no_argument,        0,  't'},
@@ -39,9 +57,8 @@ parse_args(int argc, char** argv) {
     };
 
     int index, c;
-    int success = 0;
     static char filter[1024] = {0};
-    static char device[1024];
+    static char name[1024];
     int first = 0;
     while ((c = getopt_long(argc, argv, "", opts, &index)) != -1) {
         switch (c) {
@@ -59,8 +76,8 @@ parse_args(int argc, char** argv) {
                 break;
 
             case 'e':
-                snprintf(device, sizeof(device), "%s", optarg);
-                g_device = device;
+                snprintf(name, sizeof(name), "%s", optarg);
+                g_name = name;
                 break;
 
             case 'i':
@@ -77,74 +94,93 @@ parse_args(int argc, char** argv) {
 
             case '?':
             default:
-                usage();
-                success = -1;
+                _usage();
+                exit(-1);
                 break;
         };
     }
 
     g_filter = filter[0] ? filter : NULL;
-    return success;
+    return 0;
 }
 
-int
-main(int argc, char** argv) {
-
-    int ret = parse_args(argc, argv);
-    if (ret < 0) return -1;
-
-    pcap_if_t* devs;
+pcap_if_t*
+_get_device() {
     pcap_if_t* dev = NULL;
     char err[PCAP_ERRBUF_SIZE];
-
-    if (pcap_findalldevs(&devs, err) < 0) {
+    if (pcap_findalldevs(&g_device, err) < 0) {
         printf("find all devs error: %s\n", err);
-        return -1;
+        return NULL;
     }
-
-    if (!g_device) {
-        usage();
+    if (!g_name) {
+        _usage();
         printf("\nlocal devices as following: \n");
-        for (dev = devs; dev; dev = dev->next) {
+        for (dev = g_device; dev; dev = dev->next) {
             printf("\t%s\n", dev->name);
         }
-        goto FAIL;
+        return NULL;
     }
-
-    for (dev = devs; dev; dev = dev->next) {
-        if (strcmp(dev->name, g_device) == 0) {
+    for (dev = g_device; dev; dev = dev->next) {
+        if (strcmp(dev->name, g_name) == 0) {
             break;
         }
     }
     if (!dev) {
-        printf("dev[%s] not found error\n", g_device);
-        goto FAIL;
+        printf("dev[%s] not found error\n", g_name);
+        return NULL;
     }
+    return dev;
+}
 
+void
+_get_address(pcap_if_t* dev) {
+    if (dev) {
+        pcap_addr_t* addr = dev->addresses;
+        // maybe multi ip addresses
+        while (addr) {
+            struct sockaddr_in* self = (struct sockaddr_in*)addr->addr;
+            printf("self ip: %s\n", inet_ntoa(self->sin_addr));
+
+            assert(g_addrs.num < MAX_LOCAL_IP_ADDR_NUM);
+            g_addrs.addrs[g_addrs.num ++] = *(uint32_t*)&self->sin_addr;
+
+            addr = addr->next;
+        }
+    }
+}
+
+pcap_t*
+_open_device(pcap_if_t* dev) {
+    char err[PCAP_ERRBUF_SIZE];
     pcap_t* adhandle = pcap_open_live(dev->name, 65536, 0, 1000, err);
     if (!adhandle) {
         printf("unable to gaze %s: %s\n", dev->name, err);
-        goto FAIL;
+        return NULL;
     }
+    return adhandle;
+}
 
+int
+_filter(pcap_if_t* dev, pcap_t* adhandle) {
     if (g_filter) {
-
         struct bpf_program fcode;
         if (pcap_compile(adhandle, &fcode, g_filter, 1, 0) < 0) {
             printf("unable to compile filter: %s\n", g_filter);
-            goto FAIL;
+            return -1;
         }
-
         if (pcap_setfilter(adhandle, &fcode) < 0) {
             printf("unable to set filter: %s\n", g_filter);
-            goto FAIL;
+            return -1;
         }
     }
-
     printf("listening on %s", dev->description ? dev->description : dev->name);
     if (g_filter) printf("(%s)", g_filter);
     printf(" ...\n");
+    return 0;
+}
 
+void
+_poll_device(pcap_t* adhandle) {
     struct pcap_pkthdr* header;
     const unsigned char* data;
     int res;
@@ -155,13 +191,33 @@ main(int argc, char** argv) {
             printf("parse packet fail: %d\n\n", errno);
         }
     }
-
     printf("reading packet: %s\n", pcap_geterr(adhandle));
-    pcap_freealldevs(devs);
-    return 0;
+}
 
-FAIL:
-    pcap_freealldevs(devs);
-    return -1;
+int
+main(int argc, char** argv) {
+
+    int ret = _parse(argc, argv);
+    if (ret < 0) return -1;
+
+    pcap_if_t* dev = _get_device();
+    if (!dev) goto EXIT;
+
+    memset(&g_addrs, 0, sizeof(g_addrs));
+    _get_address(dev);
+
+    pcap_t* adhandle = _open_device(dev);
+    if (!adhandle) goto EXIT;
+
+    ret = _filter(dev, adhandle);
+    if (ret < 0) goto EXIT;
+
+    _poll_device(adhandle);
+
+EXIT:
+    if (!g_device) {
+        pcap_freealldevs(g_device);
+    }
+    return 0;
 }
 

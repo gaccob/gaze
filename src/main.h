@@ -1,8 +1,9 @@
-#ifndef PROTO_H_
-#define PROTO_H_
+#ifndef MAIN_H_
+#define MAIN_H_
 
 #include <stdint.h>
 
+/*
 typedef struct udp_t {
     uint32_t sport;
     uint32_t dport;
@@ -33,6 +34,9 @@ typedef struct arp_t {
     uint8_t to[6];
     uint8_t toip[4];
 } arp_t;
+*/
+
+int is_local_address(uint32_t addr);
 
 #endif
 

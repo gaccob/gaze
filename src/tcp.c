@@ -11,6 +11,7 @@
 #include "errdef.h"
 #include "tcp.h"
 #include "ip.h"
+#include "main.h"
 #include "checksum.h"
 
 int
@@ -25,27 +26,18 @@ _tcp_checksum(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t len) {
     } ph;
     ph.mbz = 0;
     ph.proto = IP_TCP;
-    ph.len = htons((len >> 1) << 1);
+    ph.len = htons(len);
     ph.sip = sip;
     ph.dip = dip;
-
     struct cksum_vec vec[2];
     vec[0].ptr = (const uint8_t*)(&ph);
     vec[0].len = sizeof(ph);
-
-    if (len & 1) {
-        static uint8_t _buf[IP_MAX_LEN];
-        memcpy(_buf, (const uint8_t*)tcp, len);
-        _buf[len] = 0;
-        vec[1].ptr = _buf;
-        vec[1].len = len + 1;
-    } else {
-        vec[1].ptr = (const uint8_t*)(tcp);
-        vec[1].len = len;
-    }
+    vec[1].ptr = (const uint8_t*)(tcp);
+    vec[1].len = len;
     uint16_t sum = checksum(vec, 2);
-    if (sum != 0) { // tcp->checksum) {
-        printf("tcp checksum: %x, len=%d, head->cksum=%d\n", sum, len, tcp->checksum);
+    if (sum != 0) {
+        uint16_t tcpsum = ntohs(tcp->checksum);
+        printf("tcp checksum: %x, len=%d, head->cksum=%d\n", sum, len, tcpsum);
         return GAZE_TCP_CHECKSUM_ERROR;
     }
     return 0;
@@ -65,8 +57,6 @@ _tcp_timestamp(time_t ts) {
 int
 _tcp_option(const unsigned char* start, int bytes) {
     for (int i  = 0; i < bytes; ) {
-
-        // kind = 1
         if (start[i] == TCP_OPTION_NOP) {
             printf(" <nop>");
             ++ i;
@@ -95,7 +85,6 @@ _tcp_option(const unsigned char* start, int bytes) {
         } else {
             printf(" <option[%d]>", start[i]);
         }
-
         i += len;
     }
     return 0;
@@ -129,9 +118,13 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
 int
 tcp_parse(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t len) {
 
+    int ret;
+
     // tcp checksum
-    int ret = _tcp_checksum(tcp, sip, dip, len);
-    if (ret < 0) { return ret; }
+    if (is_local_address(sip)) {
+        ret = _tcp_checksum(tcp, sip, dip, len);
+        if (ret < 0) { return ret; }
+    }
 
     // tcp head option
     ret = _tcp_head_option(tcp, sip, dip);

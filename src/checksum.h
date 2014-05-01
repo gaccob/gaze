@@ -11,4 +11,6 @@ struct cksum_vec {
 uint16_t checksum(const struct cksum_vec*, int);
 uint16_t checksum_shouldbe(uint16_t, uint16_t);
 
+uint16_t checksum2(const struct cksum_vec*, int);
+
 #endif

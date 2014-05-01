@@ -8,6 +8,7 @@
 #include "errdef.h"
 #include "tcp.h"
 #include "ip.h"
+#include "main.h"
 #include "checksum.h"
 
 // TCP的MSS会尽量保证TCP段不会超过IP的MTU, 避免IP分片
@@ -30,20 +31,24 @@ ip_parse(const ip_head_t* ip) {
         return GAZE_IP_MF_NOT_SUPPORT;
     }
 
-    // checksum (must be aligned)
-    struct cksum_vec vec;
-    vec.ptr = (const uint8_t*)(ip);
-    vec.len = sizeof(ip_head_t);
-    uint16_t sum = checksum(&vec, 1);
-    if (sum != 0) {
-        uint16_t ipsum = ntohs(ip->checksum);
-        printf("bad ip checksum: %x -> %x\n", ipsum, checksum_shouldbe(ipsum, sum));
-        return GAZE_IP_CHECKSUM_ERROR;
+    // source & dst ip address
+    uint32_t sip = *(uint32_t*)&ip->src;
+    uint32_t dip = *(uint32_t*)&ip->dst;
+
+    // checksum (only recv fragment)
+    if (is_local_address(sip)) {
+        struct cksum_vec vec;
+        vec.ptr = (const uint8_t*)(ip);
+        vec.len = sizeof(ip_head_t);
+        uint16_t sum = checksum(&vec, 1);
+        if (sum != 0) {
+            uint16_t ipsum = ntohs(ip->checksum);
+            printf("bad ip checksum: %x, got %x\n", sum, ipsum);
+            return GAZE_IP_CHECKSUM_ERROR;
+        }
     }
 
     // parse by sub-protocol
-    uint32_t sip = *(uint32_t*)&ip->src;
-    uint32_t dip = *(uint32_t*)&ip->dst;
     switch (ip->proto) {
         case IP_TCP: {
             uint16_t tcplen = ntohs(ip->totlen) - sizeof(ip_head_t);

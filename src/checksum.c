@@ -34,7 +34,7 @@
  *
  *	@(#)in_cksum.c	8.1 (Berkeley) 6/10/93
  *
- *  
+ *
  *  gaccob: copied from tcpdump, 2014.4.25
  *
  */
@@ -45,6 +45,7 @@
 #include <arpa/inet.h>
 #endif
 
+#include <assert.h>
 #include "checksum.h"
 
 /*
