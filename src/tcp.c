@@ -122,7 +122,7 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
 }
 
 int
-_tcp_flag(const tcp_head_t* tcp, link_value_t* val, uint16_t tcpbytes) {
+_tcp_flag(const tcp_head_t* tcp, struct link_value_t* val, uint16_t tcpbytes) {
     uint32_t seq = ntohl(tcp->seq);
     link_value_on_seq(val, seq);
     if (tcp->flags & TCP_FLAG_ACK) {
@@ -161,7 +161,7 @@ tcp_parse(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t tcpbytes) 
     if (ret < 0) { return ret; }
 
     // tcpp link
-    link_value_t* val = link_find_insert(sip, dip, ntohs(tcp->sport), ntohs(tcp->dport));
+    struct link_value_t* val = link_find_insert(sip, dip, ntohs(tcp->sport), ntohs(tcp->dport));
     if (!val) return GAZE_TCP_LINK_FAIL;
 
     // tcp flag

@@ -11,6 +11,28 @@
 #include "hash.h"
 #include "main.h"
 
+#define MAX_SLICE_SIZE 1500
+typedef struct slice_t {
+    uint32_t seq;
+    int offset;
+    char buffer[MAX_SLICE_SIZE];
+} slice_t;
+
+typedef struct slab_t {
+    slice_t slice;
+    struct slab_t* next;
+} slab_t;
+
+typedef struct link_value_t {
+    uint8_t flow;
+    uint32_t start_send_seq;
+    uint32_t start_recv_seq;
+    uint32_t acked_send_seq;
+    uint32_t acked_recv_seq;
+    slab_t* send;
+    slab_t* recv;
+} link_value_t;
+
 typedef struct link_t {
     link_key_t key;
     link_value_t value;
@@ -50,8 +72,7 @@ link_find(link_key_t* key) {
 
 link_value_t*
 link_insert(link_key_t* key) {
-    link_t* link = (link_t*)malloc(sizeof(link_t));
-    memset(link, 0, sizeof(link_t));
+    link_t* link = (link_t*)calloc(sizeof(link_t), 1);
     link->key = *key;
     if (hash_insert(g_links, link)) {
         free(link);
@@ -149,5 +170,30 @@ link_value_on_ack(link_value_t* val, uint32_t ack) {
             printf("\tACK[S + %u]\n", ack - val->start_send_seq);
         }
     }
+}
+
+void
+link_value_on_psh(link_value_t* val, uint32_t seq, int bytes, const char* data) {
+    if (!val || !data || bytes <= 0) return;
+    // TODO: alloc from pool
+    slab_t* slab;
+    slab = (val->flow == PKG_SEND ? val->send : val->recv);
+    if (!slab) {
+        slab = (slab_t*)calloc(sizeof(slab_t), 1);
+        if (val->flow == PKG_SEND) {
+            val->send = slab;
+        } else {
+            val->recv = slab;
+        }
+    } else {
+        while (slab->next) {
+            slab = slab->next;
+        }
+        slab->next = (slab_t*)calloc(sizeof(slab_t), 1);;
+        slab = slab->next;
+    }
+    slab->slice.seq = seq;
+    slab->slice.offset = bytes;
+    memcpy(slab->slice.buffer, data, bytes);
 }
 
