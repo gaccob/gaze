@@ -13,6 +13,7 @@
 
 #include "eth.h"
 #include "errdef.h"
+#include "link.h"
 
 void
 _usage() {
@@ -212,12 +213,16 @@ main(int argc, char** argv) {
     ret = _filter(dev, adhandle);
     if (ret < 0) goto EXIT;
 
+    ret = link_create();
+    if (ret < 0) goto EXIT;
+
     _poll_device(adhandle);
 
 EXIT:
     if (!g_device) {
         pcap_freealldevs(g_device);
     }
+    link_release();
     return 0;
 }
 

@@ -21,6 +21,13 @@ typedef struct tcp_head_t {
 #define TCP_OPTION_SACK 0x04
 #define TCP_OPTION_TS  0x08
 
+#define TCP_FLAG_FIN 0x01
+#define TCP_FLAG_SYN 0x02
+#define TCP_FLAG_RST 0x04
+#define TCP_FLAG_PSH 0x08
+#define TCP_FLAG_ACK 0x10
+#define TCP_FLAG_URG 0x20
+
 } tcp_head_t;
 
 int tcp_parse(const tcp_head_t* head, uint32_t sip, uint32_t dip, uint16_t len);
