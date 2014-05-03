@@ -103,7 +103,11 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
     // print address
     struct in_addr addr;
     addr.s_addr = sip;
-    printf("[%s:%d --> ", inet_ntoa(addr), sport);
+    if (is_local_address(sip) == 0) {
+        printf("local[%s:%d] --> peer[", inet_ntoa(addr), sport);
+    } else {
+        printf("peer[%s:%d] --> local[", inet_ntoa(addr), sport);
+    }
     addr.s_addr = dip;
     printf("%s:%d]\n", inet_ntoa(addr), dport);
 
@@ -117,92 +121,28 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
     return 0;
 }
 
-#define PKG_SEND 0
-#define PKG_RECV 1
-
-link_value_t*
-_tcp_link(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
-    // send packet
-    link_key_t key;
-    int flow = PKG_SEND;
-    if (is_local_address(sip) == 0) {
-        key.sip = sip;
-        key.dip = dip;
-        key.sport = ntohs(tcp->sport);
-        key.dport = ntohs(tcp->dport);
-    } else {
-        flow = PKG_RECV;
-        key.dip = sip;
-        key.sip = dip;
-        key.dport = ntohs(tcp->sport);
-        key.sport = ntohs(tcp->dport);
-    }
-
-    link_value_t* val = link_find(&key);
-    if (!val) {
-        val = link_insert(&key);
-        if (!val) {
-            return NULL;
-        }
-        memset(val, 0, sizeof(link_value_t));
-    }
-    val->flow = flow;
-    return val;
-}
-
 int
 _tcp_flag(const tcp_head_t* tcp, link_value_t* val, uint16_t tcpbytes) {
-
     uint32_t seq = ntohl(tcp->seq);
-    if (val->flow == PKG_SEND && val->start_send_seq == 0) {
-        val->start_send_seq = seq;
-        printf("\tSSEQ = %u\n", seq);
-    }
-    if (val->flow == PKG_RECV && val->start_recv_seq == 0) {
-        val->start_recv_seq = seq;
-        printf("\tRSEQ = %u\n", seq);
-    }
-
-    if (val->flow == PKG_SEND) {
-        printf("\tseq[SSEQ + %u] ", seq - val->start_send_seq);
-    } else {
-        printf("\tseq[RSEQ + %u] ", seq - val->start_recv_seq);
-    }
-
+    link_value_on_seq(val, seq);
     if (tcp->flags & TCP_FLAG_ACK) {
-        uint32_t ack = ntohl(tcp->ack);
-        if (val->flow == PKG_SEND) {
-            val->acked_recv_seq = ack;
-            if (val->start_recv_seq == 0) {
-                printf("ack[%u] ", ack);
-            } else {
-                printf("ack[RSEQ + %u] ", ack - val->start_recv_seq);
-            }
-        } else {
-            val->acked_send_seq = ack;
-            if (val->start_send_seq == 0) {
-                printf("ack[%u] ", ack);
-            } else {
-                printf("ack[SSEQ + %u] ", ack - val->start_send_seq);
-            }
-        }
+        link_value_on_ack(val, ntohl(tcp->ack));
     }
-
     if (tcp->flags & TCP_FLAG_FIN) {
-        printf("fin ");
+        printf("\tFIN\n");
     }
     if (tcp->flags & TCP_FLAG_SYN) {
-        printf("syn ");
+        printf("\tSYN\n");
     }
     if (tcp->flags & TCP_FLAG_RST) {
-        printf("rst ");
+        printf("\tRST\n");
     }
     if (tcp->flags & TCP_FLAG_PSH) {
         int headbytes = (int)(tcp->offx2 >> 4) << 2;
-        printf("psh[%d] ", tcpbytes - headbytes);
+        printf("\tPSH[%d]\n", tcpbytes - headbytes);
     }
     if (tcp->flags & TCP_FLAG_URG) {
-        printf("urg ");
+        printf("\tURG\n");
     }
     return 0;
 }
@@ -221,7 +161,7 @@ tcp_parse(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t tcpbytes) 
     if (ret < 0) { return ret; }
 
     // tcpp link
-    link_value_t* val = _tcp_link(tcp, sip, dip);
+    link_value_t* val = link_find_insert(sip, dip, ntohs(tcp->sport), ntohs(tcp->dport));
     if (!val) return GAZE_TCP_LINK_FAIL;
 
     // tcp flag
