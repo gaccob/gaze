@@ -18,4 +18,7 @@
 #define GAZE_TCP_OPTION_FAIL -302
 #define GAZE_TCP_LINK_FAIL -303
 
+#define GAZE_DYLIB_FAIL -400
+#define GAZE_DYLIB_SYMBLE_FAIL -401
+
 #endif

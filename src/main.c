@@ -14,13 +14,15 @@
 #include "eth.h"
 #include "errdef.h"
 #include "link.h"
+#include "output.h"
 
 void
 _usage() {
     printf("_usage:\n"
         "--tcp          \"tcp packets\"\n"
         "--udp          \"udp packets\"\n"
-        "--eth <name>   \"sniff device name, required!\"\n"
+        "--eth <name>   \"sniff device name, required! You can use default\"\n"
+        "--plugin <name>  \"plugin shared library name, default not used\"\n"
         "--ip <ip address>\n"
         "--port <port>\n");
 }
@@ -54,6 +56,7 @@ _parse(int argc, char** argv) {
         { "eth",    required_argument,  0,  'e'},
         { "ip",     required_argument,  0,  'i'},
         { "port",   required_argument,  0,  'p'},
+        { "plugin", required_argument,  0,  'g'},
         { 0,        0,                  0,  0}
     };
 
@@ -93,6 +96,13 @@ _parse(int argc, char** argv) {
                 first = 1;
                 break;
 
+            case 'g':
+                if (output_load_dylib(optarg)) {
+                    _usage();
+                    exit(-1);
+                }
+                break;
+
             case '?':
             default:
                 _usage();
@@ -121,11 +131,16 @@ _get_device() {
         }
         return NULL;
     }
-    for (dev = g_device; dev; dev = dev->next) {
-        if (strcmp(dev->name, g_name) == 0) {
-            break;
+    if (strcmp(g_name, "default")) {
+        for (dev = g_device; dev; dev = dev->next) {
+            if (strcmp(dev->name, g_name) == 0) {
+                break;
+            }
         }
+    } else {
+        dev = g_device;
     }
+
     if (!dev) {
         printf("dev[%s] not found error\n", g_name);
         return NULL;

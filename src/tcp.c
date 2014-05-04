@@ -122,14 +122,15 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
 }
 
 int
-_tcp_flag(const tcp_head_t* tcp, struct link_value_t* val, uint16_t tcpbytes) {
+_tcp_flag(const tcp_head_t* tcp, link_key_t* key, struct link_value_t* val, uint16_t tcpbytes) {
     uint32_t seq = ntohl(tcp->seq);
+    uint32_t ack = ntohl(tcp->ack);
     link_value_on_seq(val, seq);
     if (tcp->flags & TCP_FLAG_ACK) {
-        link_value_on_ack(val, ntohl(tcp->ack));
+        link_value_on_ack(key, val, ack);
     }
     if (tcp->flags & TCP_FLAG_FIN) {
-        printf("\tFIN\n");
+        link_value_on_fin(val, seq);
     }
     if (tcp->flags & TCP_FLAG_SYN) {
         printf("\tSYN\n");
@@ -140,6 +141,7 @@ _tcp_flag(const tcp_head_t* tcp, struct link_value_t* val, uint16_t tcpbytes) {
     if (tcp->flags & TCP_FLAG_PSH) {
         int headbytes = (int)(tcp->offx2 >> 4) << 2;
         printf("\tPSH[%d]\n", tcpbytes - headbytes);
+        link_value_on_psh(val, seq, tcpbytes - headbytes, (const char*)tcp + headbytes);
     }
     if (tcp->flags & TCP_FLAG_URG) {
         printf("\tURG\n");
@@ -161,12 +163,20 @@ tcp_parse(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t tcpbytes) 
     if (ret < 0) { return ret; }
 
     // tcpp link
-    struct link_value_t* val = link_find_insert(sip, dip, ntohs(tcp->sport), ntohs(tcp->dport));
+    link_key_t key;
+    link_key_init(&key, sip, dip, ntohs(tcp->sport), ntohs(tcp->dport));
+    struct link_value_t* val = link_find_insert(&key, is_local_address(sip));
     if (!val) return GAZE_TCP_LINK_FAIL;
 
     // tcp flag
-    ret = _tcp_flag(tcp, val, tcpbytes);
+    ret = _tcp_flag(tcp, &key, val, tcpbytes);
     if (ret < 0) { return ret; }
+
+    // tcp finish
+    ret = link_value_is_finish(val);
+    if (ret == 0) {
+        link_erase(&key);
+    }
 
     printf("\n\n");
     return GAZE_OK;

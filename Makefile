@@ -1,7 +1,7 @@
 .PHONY : mingw linux macos undefined
 
 CFLAGS := -g -Wall -std=c99
-LDFLAGS :=
+LDFLAGS := -ldl
 LIBS :=
 TARGET := gaze
 
@@ -12,7 +12,8 @@ SRC := \
     src/tcp.c \
 	src/checksum.c \
 	src/hash.c \
-	src/link.c
+	src/link.c \
+	src/output.c
 
 UNAME=$(shell uname)
 SYS=$(if $(filter Linux%, $(UNAME)), linux,\
@@ -27,17 +28,18 @@ undefined:
 	@echo "      macos linux mingw"
 
 
-mingw : CFLAGS += -Iwinpcap/include -DHAVE_REMOTE -DMINGW
-mingw : LDFLAGS += -lmingw32 -lws2_32
-mingw : LIBS += winpcap/lib/Packet.lib winpcap/lib/wpcap.lib
+mingw : CFLAGS += -I./winpcap/include -I./dlfcn -DHAVE_REMOTE -DMINGW
+mingw : LDFLAGS += -lmingw32 -lws2_32 -lpthreadGC2
+mingw : LIBS += ./winpcap/lib/Packet.lib ./winpcap/lib/wpcap.lib
+mingw : SRC += dlfcn/dlfcn.c
 mingw : $(SRC) $(TARGET)
 
-linux : CFLAGS += -Ilibpcap/include -DLINUX
-linux : LIBS += libpcap/lib/libpcap.linux.a
+linux : CFLAGS += -I./libpcap/include -DLINUX
+linux : LIBS += ./libpcap/lib/libpcap.linux.a -lpthread
 linux : $(SRC) $(TARGET)
 
-macos : CFLAGS += -Ilibpcap/include -DMACOS
-macos : LIBS += libpcap/lib/libpcap.macos.a
+macos : CFLAGS += -I./libpcap/include -DMACOS
+macos : LIBS += ./libpcap/lib/libpcap.macos.a -lpthread
 macos : $(SRC) $(TARGET)
 
 $(TARGET) :
