@@ -43,7 +43,7 @@ ip_parse(const ip_head_t* ip) {
         uint16_t sum = checksum(&vec, 1);
         if (sum != 0) {
             uint16_t ipsum = ntohs(ip->checksum);
-            printf("bad ip checksum: %x, got %x\n", sum, ipsum);
+            PRINTF("bad ip checksum: %x, got %x\n", sum, ipsum);
             return GAZE_IP_CHECKSUM_ERROR;
         }
     }

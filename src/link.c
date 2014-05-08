@@ -11,16 +11,7 @@
 #include "hash.h"
 #include "main.h"
 #include "output.h"
-
-#if defined(__LINUX__) || defined(__linux__)
-    #define COLOR_RED "\033[31;1m"
-    #define COLOR_GREEN "\033[32;1m"
-    #define COLOR_RESET "\033[;0m"
-#else
-    #define COLOR_RED
-    #define COLOR_GREEN
-    #define COLOR_RESET
-#endif
+#include "gaze.h"
 
 #define MAX_SLICE_SIZE 1500
 typedef struct slice_t {
@@ -151,9 +142,9 @@ link_find_insert(link_key_t* key, int is_send) {
         if (!val) {
             return NULL;
         }
-        printf("\t"COLOR_GREEN"add new link[%u:%d->%u:%d]"COLOR_RESET"\n",
-            key->local_ip, key->local_port,
-            key->peer_ip, key->peer_port);
+
+        g_build_hook(key);
+
         memset(val, 0, sizeof(link_value_t));
     }
     val->flow = flow;
@@ -190,9 +181,9 @@ link_erase(link_key_t* key) {
     link.key = *key;
     link_t* dst = (link_t*)hash_find(g_links, &link);
     if (dst) {
-        printf("\t"COLOR_GREEN"remove finish link[%u:%d->%u:%d]"COLOR_RESET"\n",
-            key->local_ip, key->local_port,
-            key->peer_ip, key->peer_port);
+
+        g_finish_hook(key);
+
         hash_remove(g_links, &link);
         _link_release(dst, NULL);
     }
@@ -211,17 +202,17 @@ void
 link_value_on_seq(link_value_t* val, uint32_t seq) {
     if (val && val->flow == PKG_SEND && val->start_send_seq == 0) {
         val->start_send_seq = seq;
-        printf("\tS = %u\n", seq);
+        PRINTF("\tS = %u\n", seq);
     }
     if (val && val->flow == PKG_RECV && val->start_recv_seq == 0) {
         val->start_recv_seq = seq;
-        printf("\tR = %u\n", seq);
+        PRINTF("\tR = %u\n", seq);
     }
 
     if (val->flow == PKG_SEND) {
-        printf("\tSEQ[S + %u] \n", seq - val->start_send_seq);
+        PRINTF("\tSEQ[S + %u] \n", seq - val->start_send_seq);
     } else {
-        printf("\tSEQ[R + %u] \n", seq - val->start_recv_seq);
+        PRINTF("\tSEQ[R + %u] \n", seq - val->start_recv_seq);
     }
 }
 
@@ -231,9 +222,9 @@ _link_value_on_ack_notify(link_key_t* key, link_value_t* val, uint32_t ack) {
     while (slab) {
         if (ack == slab->slice.seq + slab->slice.offset) {
             if (val->flow == PKG_SEND) {
-                printf("\t"COLOR_RED"recv slice[%d]"COLOR_RESET"\n", slab->slice.offset);
+                PRINTF("\tacked recv slice[%d]\n", slab->slice.offset);
             } else {
-                printf("\t"COLOR_RED"send slice[%d]"COLOR_RESET"\n", slab->slice.offset);
+                PRINTF("\tacked send slice[%d]\n", slab->slice.offset);
             }
             break;
         }
@@ -269,9 +260,9 @@ link_value_on_ack(link_key_t* key, link_value_t* val, uint32_t ack) {
     if (val->flow == PKG_SEND) {
         val->acked_recv_seq = ack;
         if (val->start_recv_seq == 0) {
-            printf("\tACK[%u]\n", ack);
+            PRINTF("\tACK[%u]\n", ack);
         } else {
-            printf("\tACK[R + %u]\n", ack - val->start_recv_seq);
+            PRINTF("\tACK[R + %u]\n", ack - val->start_recv_seq);
         }
 
         if (val->recv_fin_seq > 0 && ack >= val->recv_fin_seq) {
@@ -282,9 +273,9 @@ link_value_on_ack(link_key_t* key, link_value_t* val, uint32_t ack) {
 
         val->acked_send_seq = ack;
         if (val->start_send_seq == 0) {
-            printf("\tACK[%u]\n", ack);
+            PRINTF("\tACK[%u]\n", ack);
         } else {
-            printf("\tACK[S + %u]\n", ack - val->start_send_seq);
+            PRINTF("\tACK[S + %u]\n", ack - val->start_send_seq);
         }
 
         if (val->send_fin_seq > 0 && ack >= val->send_fin_seq) {
@@ -296,7 +287,7 @@ link_value_on_ack(link_key_t* key, link_value_t* val, uint32_t ack) {
 
 void
 link_value_on_fin(link_value_t* val, uint32_t seq) {
-    printf("\tFIN\n");
+    PRINTF("\tFIN\n");
     if (val->flow == PKG_SEND) {
         val->send_fin_seq = seq;
     } else {

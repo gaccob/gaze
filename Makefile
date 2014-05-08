@@ -1,9 +1,10 @@
 .PHONY : mingw linux macos undefined
 
 CFLAGS := -g -Wall -std=c99
-LDFLAGS := -ldl
+LDFLAGS :=
 LIBS :=
 TARGET := gaze
+INCLUDES := -I./include/ -I./src/
 
 SRC := \
     src/main.c \
@@ -28,22 +29,24 @@ undefined:
 	@echo "      macos linux mingw"
 
 
-mingw : CFLAGS += -I./winpcap/include -I./dlfcn -DHAVE_REMOTE -DMINGW
-mingw : LDFLAGS += -lmingw32 -lws2_32 -lpthreadGC2
+mingw : CFLAGS += -DHAVE_REMOTE -DMINGW
+mingw : INCLUDES += -I./winpcap/include -I./dlfcn
+mingw : LDFLAGS += -lmingw32 -lws2_32 -lpthread
 mingw : LIBS += ./winpcap/lib/Packet.lib ./winpcap/lib/wpcap.lib
 mingw : SRC += dlfcn/dlfcn.c
 mingw : $(SRC) $(TARGET)
 
-linux : CFLAGS += -I./libpcap/include -DLINUX
+linux : CFLAGS += -DLINUX
+linux : INCLUDES += -I./libpcap/include
+linux : LDFLAGS += -ldl
 linux : LIBS += ./libpcap/lib/libpcap.linux.a -lpthread
 linux : $(SRC) $(TARGET)
 
-macos : CFLAGS += -I./libpcap/include -DMACOS
+macos : CFLAGS += -DMACOS
+macos : INCLUDES += -I./libpcap/include
 macos : LIBS += ./libpcap/lib/libpcap.macos.a -lpthread
 macos : $(SRC) $(TARGET)
 
 $(TARGET) :
-	gcc $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS) $(LIBS)
-
-clean :
-	-rm -rf $(TARGET).dSYM $(TARGET)
+	gcc $(CFLAGS) -o $(TARGET) $(SRC) $(INCLUDES) $(LDFLAGS) $(LIBS)
+#-mv $(TARGET) ../bin/

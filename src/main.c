@@ -24,6 +24,7 @@ _usage() {
         "--eth <name>   \"sniff device name, required! You can use default\"\n"
         "--plugin <name>  \"plugin shared library name, default not used\"\n"
         "--ip <ip address>\n"
+        "--debug    \"print ip & tcp level debug info\"\n"
         "--port <port>\n");
 }
 
@@ -47,6 +48,8 @@ is_local_address(uint32_t addr) {
     return -1;
 }
 
+int g_debug = 0;
+
 int
 _parse(int argc, char** argv) {
 
@@ -57,6 +60,7 @@ _parse(int argc, char** argv) {
         { "ip",     required_argument,  0,  'i'},
         { "port",   required_argument,  0,  'p'},
         { "plugin", required_argument,  0,  'g'},
+        { "debug",  no_argument,        0,  'd'},
         { 0,        0,                  0,  0}
     };
 
@@ -94,6 +98,10 @@ _parse(int argc, char** argv) {
                 snprintf(filter + strlen(filter), sizeof(filter) - strlen(filter),
                     first == 0 ? "port %d" : " and port %d", atoi(optarg));
                 first = 1;
+                break;
+
+            case 'd':
+                g_debug = 1;
                 break;
 
             case 'g':

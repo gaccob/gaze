@@ -38,29 +38,18 @@ _tcp_checksum(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t tcpbyt
     uint16_t sum = checksum(vec, 2);
     if (sum != 0) {
         uint16_t tcpsum = ntohs(tcp->checksum);
-        printf("tcp checksum: %x, tcpbytes=%d, head->cksum=%d\n", sum, tcpbytes, tcpsum);
+        PRINTF("tcp checksum: %x, tcpbytes=%d, head->cksum=%d\n", sum, tcpbytes, tcpsum);
         return GAZE_TCP_CHECKSUM_ERROR;
     }
     return 0;
 }
 
-const char*
-_tcp_timestamp(time_t ts) {
-    static char timestamp[64];
-    struct tm* p = localtime(&ts);
-    snprintf(timestamp, sizeof(timestamp),
-        "%04d-%02d-%02d %02d:%02d:%02d",
-        p->tm_year + 1900, p->tm_mon + 1, p->tm_mday,
-        p->tm_hour, p->tm_min, p->tm_sec);
-    return timestamp;
-}
-
 int
 _tcp_option(const unsigned char* start, int bytes) {
-    printf("\t");
+    PRINTF("\t");
     for (int i  = 0; i < bytes; ) {
         if (start[i] == TCP_OPTION_NOP) {
-            printf("<nop> ");
+            PRINTF("<nop> ");
             ++ i;
             continue;
         }
@@ -71,24 +60,24 @@ _tcp_option(const unsigned char* start, int bytes) {
 
         if (start[i] == TCP_OPTION_MSS) {
             assert(len == 4);
-            printf("<mss %u> ", ntohs(*(uint16_t*)&start[i + 2]));
+            PRINTF("<mss %u> ", ntohs(*(uint16_t*)&start[i + 2]));
         } else if (start[i] == TCP_OPTION_TS) {
             assert(len == 10);
-            printf("<ts %u %u> ", ntohl(*(uint32_t*)&start[i + 2]), ntohl(*(uint32_t*)&start[i + 6]));
+            PRINTF("<ts %u %u> ", ntohl(*(uint32_t*)&start[i + 2]), ntohl(*(uint32_t*)&start[i + 6]));
         } else if (start[i] == TCP_OPTION_WND_SCALE) {
             assert(len == 3);
-            printf("<window scale %d> ", (int)*(uint8_t*)&start[i + 2]);
+            PRINTF("<window scale %d> ", (int)*(uint8_t*)&start[i + 2]);
         } else if (start[i] == TCP_OPTION_SACK) {
             assert(len == 2);
-            printf("<SACK> ");
+            PRINTF("<SACK> ");
         } else if (start[i] == TCP_OPTION_EOF) {
             break;
         } else {
-            printf("<option[%d]> ", start[i]);
+            PRINTF("<option[%d]> ", start[i]);
         }
         i += len;
     }
-    printf("\n");
+    PRINTF("\n");
     return 0;
 }
 
@@ -104,12 +93,12 @@ _tcp_head_option(const tcp_head_t* tcp, uint32_t sip, uint32_t dip) {
     struct in_addr addr;
     addr.s_addr = sip;
     if (is_local_address(sip) == 0) {
-        printf("local[%s:%d] --> peer[", inet_ntoa(addr), sport);
+        PRINTF("local[%s:%d] --> peer[", inet_ntoa(addr), sport);
     } else {
-        printf("peer[%s:%d] --> local[", inet_ntoa(addr), sport);
+        PRINTF("peer[%s:%d] --> local[", inet_ntoa(addr), sport);
     }
     addr.s_addr = dip;
-    printf("%s:%d]\n", inet_ntoa(addr), dport);
+    PRINTF("%s:%d]\n", inet_ntoa(addr), dport);
 
     // option
     int headbytes = (int)(tcp->offx2 >> 4) << 2;
@@ -133,18 +122,18 @@ _tcp_flag(const tcp_head_t* tcp, link_key_t* key, struct link_value_t* val, uint
         link_value_on_fin(val, seq);
     }
     if (tcp->flags & TCP_FLAG_SYN) {
-        printf("\tSYN\n");
+        PRINTF("\tSYN\n");
     }
     if (tcp->flags & TCP_FLAG_RST) {
-        printf("\tRST\n");
+        PRINTF("\tRST\n");
     }
     if (tcp->flags & TCP_FLAG_PSH) {
         int headbytes = (int)(tcp->offx2 >> 4) << 2;
-        printf("\tPSH[%d]\n", tcpbytes - headbytes);
+        PRINTF("\tPSH[%d]\n", tcpbytes - headbytes);
         link_value_on_psh(val, seq, tcpbytes - headbytes, (const char*)tcp + headbytes);
     }
     if (tcp->flags & TCP_FLAG_URG) {
-        printf("\tURG\n");
+        PRINTF("\tURG\n");
     }
     return 0;
 }
@@ -178,7 +167,7 @@ tcp_parse(const tcp_head_t* tcp, uint32_t sip, uint32_t dip, uint16_t tcpbytes) 
         link_erase(&key);
     }
 
-    printf("\n\n");
+    PRINTF("\n\n");
     return GAZE_OK;
 }
 

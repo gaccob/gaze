@@ -38,5 +38,9 @@ typedef struct arp_t {
 
 int is_local_address(uint32_t addr);
 
+extern int g_debug;
+
+#define PRINTF(fmt, args...) { if (g_debug) { printf(fmt, ##args); } }
+
 #endif
 

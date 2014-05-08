@@ -1,16 +1,8 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include <stdint.h>
+#include "gaze.h"
 #include "hash.h"
-
-// ignore same port+ip pair
-typedef struct link_key_t {
-    int local_ip;
-    int peer_ip;
-    uint16_t local_port;
-    uint16_t peer_port;
-} link_key_t;
 
 struct link_value_t;
 
