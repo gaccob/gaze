@@ -127,10 +127,13 @@ _tcp_flag(const tcp_head_t* tcp, link_key_t* key, struct link_value_t* val, uint
     if (tcp->flags & TCP_FLAG_RST) {
         PRINTF("\tRST\n");
     }
+    int headbytes = (int)(tcp->offx2 >> 4) << 2;
+    int databytes = tcpbytes - headbytes;
     if (tcp->flags & TCP_FLAG_PSH) {
-        int headbytes = (int)(tcp->offx2 >> 4) << 2;
-        PRINTF("\tPSH[%d]\n", tcpbytes - headbytes);
-        link_value_on_psh(val, seq, tcpbytes - headbytes, (const char*)tcp + headbytes);
+        PRINTF("\tPSH[%d]\n", databytes);
+    }
+    if (databytes > 0) {
+        link_value_on_psh(val, seq, databytes, (const char*)tcp + headbytes);
     }
     if (tcp->flags & TCP_FLAG_URG) {
         PRINTF("\tURG\n");
