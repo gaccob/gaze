@@ -18,3 +18,5 @@ gaze
 
 # for tmp files
 *.swp
+tags
+cscope.*

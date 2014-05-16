@@ -220,12 +220,12 @@ void
 _link_value_on_ack_notify(link_key_t* key, link_value_t* val, uint32_t ack) {
     slab_t* slab = (val->flow == PKG_SEND ? val->recv : val->send);
     while (slab) {
+        if (val->flow == PKG_SEND) {
+            PRINTF("\tacked recv slice[%d]\n", slab->slice.offset);
+        } else {
+            PRINTF("\tacked send slice[%d]\n", slab->slice.offset);
+        }
         if (ack == slab->slice.seq + slab->slice.offset) {
-            if (val->flow == PKG_SEND) {
-                PRINTF("\tacked recv slice[%d]\n", slab->slice.offset);
-            } else {
-                PRINTF("\tacked send slice[%d]\n", slab->slice.offset);
-            }
             break;
         }
         slab = slab->next;
