@@ -4,9 +4,29 @@
 #include <stdint.h>
 
 #if defined(__LINUX__) || defined(__linux__)
-    #define COLOR_RED "\033[31;1m"
-    #define COLOR_GREEN "\033[32;1m"
-    #define COLOR_RESET "\033[;0m"
+    #define COLOR_RED  { printf("\033[31;1m"); }
+    #define COLOR_GREEN { printf("\033[32;1m"); }
+    #define COLOR_RESET { printf("\033[;0m"); }
+
+#elif defined(WIN32)
+    #include <windows.h>
+    #define COLOR_RED \
+        { \
+            HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE); \
+            SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_INTENSITY); \
+        }
+    #define COLOR_GREEN \
+        { \
+            HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE); \
+            SetConsoleTextAttribute(h, FOREGROUND_GREEN | FOREGROUND_INTENSITY); \
+        }
+    #define COLOR_RESET \
+        { \
+            HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE); \
+            SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_BLUE \
+                | FOREGROUND_GREEN | FOREGROUND_INTENSITY); \
+        }
+
 #else
     #define COLOR_RED
     #define COLOR_GREEN
