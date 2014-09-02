@@ -33,12 +33,12 @@ usage:
 为什么没有使用libpcap或者说tcpdump的谓词语法, 纯粹只是使用习惯的问题, 更习惯linux的风格.
 
 如上面usage所示, 业务可以制定一个plugin参数, 这个plugin实际上是实现了下面接口(按需)的动态链接库, 进而解析解析业务的自定义协议.
-<code>
+
 // link_key_t的类型在gaze.h中定义.
 void OnSend(link_key_t* key, const char* buffer, int len);
 void OnRecv(link_key_t* key, const char* buffer, int len);
 void OnBuild(link_key_t* key);
 void OnFinish(link_key_t* key);
-</code>
+
 
 这个工具的初衷是为了业务联调提高效率, 所以花了几天空余时间写的, 难免会有bug和各种todo, 请善待, 非常欢迎一起完善它.
