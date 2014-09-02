@@ -28,7 +28,6 @@ undefined:
 	@echo "please do 'make PLATFORM' where PLATFORM is one of these:"
 	@echo "      macos linux mingw"
 
-
 mingw : CFLAGS += -DHAVE_REMOTE -DMINGW
 mingw : INCLUDES += -I./winpcap/include -I./dlfcn
 mingw : LDFLAGS += -lmingw32 -lws2_32 -lpthread
@@ -49,4 +48,6 @@ macos : $(SRC) $(TARGET)
 
 $(TARGET) :
 	gcc $(CFLAGS) -o $(TARGET) $(SRC) $(INCLUDES) $(LDFLAGS) $(LIBS)
-#-mv $(TARGET) ../bin/
+
+clean :
+	@(rm -f gaze src/*.o)

@@ -18,19 +18,22 @@
 
 void
 _usage() {
-    printf("_usage:\n"
-        "--tcp          \"tcp packets\"\n"
-        "--udp          \"udp packets\"\n"
-        "--eth <name>   \"sniff device name, required! You can use default\"\n"
-        "--plugin <name>  \"plugin shared library name, default not used\"\n"
-        "--ip <ip address>\n"
-        "--debug    \"print ip & tcp level debug info\"\n"
-        "--port <port>\n");
+    printf("usage:\n"
+        "\t--tcp              \"tcp packets\"\n"
+        "\t--udp              \"udp packets\"\n"
+        "\t--eth      <name>  \"device name, default use first eth device\"\n"
+        "\t--plugin   <name>  \"plugin shared library name\"\n"
+        "\t--ip       <ip address>\n"
+        "\t--debug            \"print ip & tcp level debug info\"\n"
+        "\t--port     <port>\n"
+        "\t--help             \"show usage\"\n");
 }
 
-static const char* g_name = NULL;
+static const char* g_name = "default";
 static const char* g_filter = NULL;
 static pcap_if_t* g_device = NULL;
+
+int g_debug = 0;
 
 typedef struct ip_addrs_t {
     int num;
@@ -48,7 +51,14 @@ is_local_address(uint32_t addr) {
     return -1;
 }
 
-int g_debug = 0;
+void
+_get_all_devices() {
+    char err[PCAP_ERRBUF_SIZE];
+    if (pcap_findalldevs(&g_device, err) < 0) {
+        printf("find all devs error: %s\n", err);
+        exit(-1);
+    }
+}
 
 int
 _parse(int argc, char** argv) {
@@ -56,11 +66,12 @@ _parse(int argc, char** argv) {
     struct option opts[] = {
         { "tcp",    no_argument,        0,  't'},
         { "udp",    no_argument,        0,  'u'},
-        { "eth",    required_argument,  0,  'e'},
+        { "eth",    optional_argument,  0,  'e'},
         { "ip",     required_argument,  0,  'i'},
         { "port",   required_argument,  0,  'p'},
         { "plugin", required_argument,  0,  'g'},
         { "debug",  no_argument,        0,  'd'},
+        { "help",   no_argument,        0,  'h'},
         { 0,        0,                  0,  0}
     };
 
@@ -84,6 +95,14 @@ _parse(int argc, char** argv) {
                 break;
 
             case 'e':
+                if (!optarg) {
+                    _get_all_devices();
+                    printf("local devices as following: \n");
+                    for (pcap_if_t* dev = g_device; dev; dev = dev->next) {
+                        printf("\t%s\n", dev->name);
+                    }
+                    exit(0);
+                }
                 snprintf(name, sizeof(name), "%s", optarg);
                 g_name = name;
                 break;
@@ -111,6 +130,7 @@ _parse(int argc, char** argv) {
                 }
                 break;
 
+            case 'h':
             case '?':
             default:
                 _usage();
@@ -126,19 +146,9 @@ _parse(int argc, char** argv) {
 pcap_if_t*
 _get_device() {
     pcap_if_t* dev = NULL;
-    char err[PCAP_ERRBUF_SIZE];
-    if (pcap_findalldevs(&g_device, err) < 0) {
-        printf("find all devs error: %s\n", err);
-        return NULL;
-    }
-    if (!g_name) {
-        _usage();
-        printf("\nlocal devices as following: \n");
-        for (dev = g_device; dev; dev = dev->next) {
-            printf("\t%s\n", dev->name);
-        }
-        return NULL;
-    }
+
+    _get_all_devices();
+
     if (strcmp(g_name, "default")) {
         for (dev = g_device; dev; dev = dev->next) {
             if (strcmp(dev->name, g_name) == 0) {
@@ -147,11 +157,11 @@ _get_device() {
         }
     } else {
         dev = g_device;
+        printf("listening on device[%s]\n", g_device->name);
     }
 
     if (!dev) {
         printf("dev[%s] not found error\n", g_name);
-        return NULL;
     }
     return dev;
 }
