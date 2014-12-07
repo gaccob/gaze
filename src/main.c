@@ -20,7 +20,7 @@ void
 _usage() {
     printf("usage:\n"
         "\t--tcp              \"tcp packets\"\n"
-        "\t--udp              \"udp packets\"\n"
+        "\t--udp              \"udp packets, not support now:(\"\n"
         "\t--eth      <name>  \"device name, default use first eth device\"\n"
         "\t--plugin   <name>  \"plugin shared library name\"\n"
         "\t--ip       <ip address>\n"
