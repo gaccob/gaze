@@ -5,8 +5,8 @@
 #endif
 
 #include "eth.h"
+#include "gaze.h"
 #include "ip.h"
-#include "errdef.h"
 
 int
 eth_parse(const unsigned char* data) {

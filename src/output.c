@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-#include "errdef.h"
+#include "gaze.h"
 #include "output.h"
 
 void

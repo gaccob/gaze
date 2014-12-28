@@ -5,11 +5,11 @@
 #endif
 #include <stdio.h>
 
-#include "errdef.h"
+#include "gaze.h"
 #include "tcp.h"
-#include "ip.h"
 #include "main.h"
 #include "checksum.h"
+#include "ip.h"
 
 // TCP的MSS会尽量保证TCP段不会超过IP的MTU, 避免IP分片
 // 目前只做TCP的解析, 所以这里不考虑IP分片的情况

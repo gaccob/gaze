@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "errdef.h"
+#include "gaze.h"
 #include "tcp.h"
 #include "ip.h"
 #include "main.h"

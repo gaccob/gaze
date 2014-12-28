@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "eth.h"
-#include "errdef.h"
+#include "gaze.h"
 #include "link.h"
 #include "output.h"
 
