@@ -18,9 +18,10 @@ SRC := \
 
 UNAME=$(shell uname)
 SYS=$(if $(filter Linux%, $(UNAME)), linux,\
-	    $(if $(filter MINGW%, $(UNAME)), mingw,\
-            $(if $(filter Darwin%, $(UNAME)), macos,\
-	        undefined)))
+		$(if $(filter CYGWIN%, $(UNAME)), cygwin,\
+			$(if $(filter MINGW%, $(UNAME)), mingw,\
+				$(if $(filter Darwin%, $(UNAME)), macos,\
+				undefined))))
 
 all: $(SYS)
 
@@ -34,6 +35,13 @@ mingw : LDFLAGS += -lmingw32 -lws2_32 -lpthread
 mingw : LIBS += ./winpcap/lib/Packet.lib ./winpcap/lib/wpcap.lib
 mingw : SRC += dlfcn/dlfcn.c
 mingw : $(SRC) $(TARGET)
+
+cygwin : CFLAGS += -DCYGWIN
+cygwin : INCLUDES += -I./winpcap/include -I./dlfcn
+cygwin : LDFLAGS += -lpthread
+cygwin : LIBS += ./winpcap/lib/libpacket.a ./winpcap/lib/libwpcap.a
+cygwin : SRC += dlfcn/dlfcn.c
+cygwin : $(SRC) $(TARGET)
 
 linux : CFLAGS += -DLINUX
 linux : INCLUDES += -I./libpcap/include
